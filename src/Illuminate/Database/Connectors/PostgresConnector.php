@@ -47,6 +47,8 @@ class PostgresConnector extends Connector implements ConnectorInterface
         // determine if the option has been specified and run a statement if so.
         $this->configureApplicationName($connection, $config);
 
+        $this->configureSynchronousCommit($connection, $config);
+
         return $connection;
     }
 
@@ -91,8 +93,8 @@ class PostgresConnector extends Connector implements ConnectorInterface
      */
     protected function configureSearchPath($connection, $config)
     {
-        if (isset($config['searchpath']) || isset($config['schema'])) {
-            $searchPath = $this->formatSearchPath($config['searchpath'] ?? $config['schema']);
+        if (isset($config['search_path']) || isset($config['schema'])) {
+            $searchPath = $this->formatSearchPath($config['search_path'] ?? $config['schema']);
 
             $connection->prepare("set search_path to {$searchPath}")->execute();
         }
@@ -107,18 +109,10 @@ class PostgresConnector extends Connector implements ConnectorInterface
     protected function formatSearchPath($searchPath)
     {
         if (is_array($searchPath)) {
-            $schemas = array_map(function ($item) {
-                return '"'.$item.'"';
-            }, $searchPath);
-
-            $preparedSchemas = array_map(function ($item) {
-                return ":$item";
-            }, $schemas);
-
-            return implode(', ', array_combine($preparedSchemas, $schemas));
+            return '"'.implode('", "', $searchPath).'"';
         }
 
-        return implode(', ', [":$searchPath" => '"'.$searchPath.'"']);
+        return '"'.$searchPath.'"';
     }
 
     /**
@@ -180,5 +174,21 @@ class PostgresConnector extends Connector implements ConnectorInterface
         }
 
         return $dsn;
+    }
+
+    /**
+     * Configure the synchronous_commit setting.
+     *
+     * @param  \PDO  $connection
+     * @param  array  $config
+     * @return void
+     */
+    protected function configureSynchronousCommit($connection, array $config)
+    {
+        if (! isset($config['synchronous_commit'])) {
+            return;
+        }
+
+        $connection->prepare("set synchronous_commit to '{$config['synchronous_commit']}'")->execute();
     }
 }
