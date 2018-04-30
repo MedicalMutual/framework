@@ -364,6 +364,14 @@ class DatabaseQueryBuilderTest extends TestCase
         $this->assertEquals([0 => 2014], $builder->getBindings());
     }
 
+    public function testWhereTimePostgres()
+    {
+        $builder = $this->getPostgresBuilder();
+        $builder->select('*')->from('users')->whereTime('created_at', '>=', '22:00');
+        $this->assertEquals('select * from "users" where "created_at"::time >= ?', $builder->toSql());
+        $this->assertEquals([0 => '22:00'], $builder->getBindings());
+    }
+
     public function testWhereDaySqlite()
     {
         $builder = $this->getSQLiteBuilder();
@@ -386,6 +394,14 @@ class DatabaseQueryBuilderTest extends TestCase
         $builder->select('*')->from('users')->whereYear('created_at', '=', 2014);
         $this->assertEquals('select * from "users" where strftime(\'%Y\', "created_at") = ?', $builder->toSql());
         $this->assertEquals([0 => 2014], $builder->getBindings());
+    }
+
+    public function testWhereTimeSqlite()
+    {
+        $builder = $this->getSQLiteBuilder();
+        $builder->select('*')->from('users')->whereTime('created_at', '>=', '22:00');
+        $this->assertEquals('select * from "users" where strftime(\'%H:%M:%S\', "created_at") >= ?', $builder->toSql());
+        $this->assertEquals([0 => '22:00'], $builder->getBindings());
     }
 
     public function testWhereDaySqlServer()
@@ -1265,6 +1281,11 @@ class DatabaseQueryBuilderTest extends TestCase
         $builder = $this->getBuilder();
         $builder->getConnection()->shouldReceive('select')->once()->with('select exists(select * from "users") as "exists"', [], true)->andReturn([['exists' => 1]]);
         $results = $builder->from('users')->exists();
+        $this->assertTrue($results);
+
+        $builder = $this->getBuilder();
+        $builder->getConnection()->shouldReceive('select')->once()->with('select exists(select * from "users") as "exists"', [], true)->andReturn([['exists' => 0]]);
+        $results = $builder->from('users')->doesntExist();
         $this->assertTrue($results);
 
         $builder = $this->getBuilder();
