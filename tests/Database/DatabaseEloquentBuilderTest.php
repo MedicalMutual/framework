@@ -460,7 +460,7 @@ class DatabaseEloquentBuilderTest extends TestCase
     {
         $builder = $this->getBuilder();
         $builder->setModel($this->getMockModel());
-        $builder->getModel()->shouldReceive('orders')->once()->andReturn($relation = m::mock('stdClass'));
+        $builder->getModel()->shouldReceive('newInstance->orders')->once()->andReturn($relation = m::mock('stdClass'));
         $relationQuery = m::mock('stdClass');
         $relation->shouldReceive('getQuery')->andReturn($relationQuery);
         $relationQuery->shouldReceive('with')->once()->with(['lines' => null, 'lines.details' => null]);
@@ -473,8 +473,8 @@ class DatabaseEloquentBuilderTest extends TestCase
     {
         $builder = $this->getBuilder();
         $builder->setModel($this->getMockModel());
-        $builder->getModel()->shouldReceive('orders')->once()->andReturn($relation = m::mock('stdClass'));
-        $builder->getModel()->shouldReceive('ordersGroups')->once()->andReturn($groupsRelation = m::mock('stdClass'));
+        $builder->getModel()->shouldReceive('newInstance->orders')->once()->andReturn($relation = m::mock('stdClass'));
+        $builder->getModel()->shouldReceive('newInstance->ordersGroups')->once()->andReturn($groupsRelation = m::mock('stdClass'));
 
         $relationQuery = m::mock('stdClass');
         $relation->shouldReceive('getQuery')->andReturn($relationQuery);
@@ -575,7 +575,7 @@ class DatabaseEloquentBuilderTest extends TestCase
         $nestedRawQuery = $this->getMockQueryBuilder();
         $nestedQuery->shouldReceive('getQuery')->once()->andReturn($nestedRawQuery);
         $model = $this->getMockModel()->makePartial();
-        $model->shouldReceive('newQueryWithoutScopes')->once()->andReturn($nestedQuery);
+        $model->shouldReceive('newModelQuery')->once()->andReturn($nestedQuery);
         $builder = $this->getBuilder();
         $builder->getQuery()->shouldReceive('from');
         $builder->setModel($model);
