@@ -5,7 +5,8 @@ namespace Illuminate\Tests\Database;
 use Mockery as m;
 use PHPUnit\Framework\TestCase;
 use Illuminate\Foundation\Application;
-use Illuminate\Database\Migrations\Migrator;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\NullOutput;
 use Illuminate\Database\Console\Migrations\ResetCommand;
 use Illuminate\Database\Console\Migrations\MigrateCommand;
 use Illuminate\Database\Console\Migrations\RefreshCommand;
@@ -14,14 +15,14 @@ use Symfony\Component\Console\Application as ConsoleApplication;
 
 class DatabaseMigrationRefreshCommandTest extends TestCase
 {
-    public function tearDown()
+    protected function tearDown(): void
     {
         m::close();
     }
 
     public function testRefreshCommandCallsCommandsWithProperArguments()
     {
-        $command = new RefreshCommand($migrator = m::mock(Migrator::class));
+        $command = new RefreshCommand();
 
         $app = new ApplicationDatabaseRefreshStub(['path.database' => __DIR__]);
         $console = m::mock(ConsoleApplication::class)->makePartial();
@@ -36,15 +37,15 @@ class DatabaseMigrationRefreshCommandTest extends TestCase
         $console->shouldReceive('find')->with('migrate')->andReturn($migrateCommand);
 
         $quote = DIRECTORY_SEPARATOR == '\\' ? '"' : "'";
-        $resetCommand->shouldReceive('run')->with(new InputMatcher("--database --path --force {$quote}migrate:reset{$quote}"), m::any());
-        $migrateCommand->shouldReceive('run')->with(new InputMatcher('--database --path --force migrate'), m::any());
+        $resetCommand->shouldReceive('run')->with(new InputMatcher("--force=1 {$quote}migrate:reset{$quote}"), m::any());
+        $migrateCommand->shouldReceive('run')->with(new InputMatcher('--force=1 migrate'), m::any());
 
         $this->runCommand($command);
     }
 
     public function testRefreshCommandCallsCommandsWithStep()
     {
-        $command = new RefreshCommand($migrator = m::mock(Migrator::class));
+        $command = new RefreshCommand();
 
         $app = new ApplicationDatabaseRefreshStub(['path.database' => __DIR__]);
         $console = m::mock(ConsoleApplication::class)->makePartial();
@@ -59,15 +60,15 @@ class DatabaseMigrationRefreshCommandTest extends TestCase
         $console->shouldReceive('find')->with('migrate')->andReturn($migrateCommand);
 
         $quote = DIRECTORY_SEPARATOR == '\\' ? '"' : "'";
-        $rollbackCommand->shouldReceive('run')->with(new InputMatcher("--database --path --step=2 --force {$quote}migrate:rollback{$quote}"), m::any());
-        $migrateCommand->shouldReceive('run')->with(new InputMatcher('--database --path --force migrate'), m::any());
+        $rollbackCommand->shouldReceive('run')->with(new InputMatcher("--step=2 --force=1 {$quote}migrate:rollback{$quote}"), m::any());
+        $migrateCommand->shouldReceive('run')->with(new InputMatcher('--force=1 migrate'), m::any());
 
         $this->runCommand($command, ['--step' => 2]);
     }
 
     protected function runCommand($command, $input = [])
     {
-        return $command->run(new \Symfony\Component\Console\Input\ArrayInput($input), new \Symfony\Component\Console\Output\NullOutput);
+        return $command->run(new ArrayInput($input), new NullOutput);
     }
 }
 
@@ -97,7 +98,7 @@ class ApplicationDatabaseRefreshStub extends Application
         }
     }
 
-    public function environment()
+    public function environment(...$environments)
     {
         return 'development';
     }

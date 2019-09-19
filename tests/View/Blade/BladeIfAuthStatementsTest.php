@@ -1,14 +1,15 @@
 <?php
 
-namespace Illuminate\Tests\Blade;
+namespace Illuminate\Tests\View\Blade;
 
 use Mockery as m;
 use PHPUnit\Framework\TestCase;
+use Illuminate\Filesystem\Filesystem;
 use Illuminate\View\Compilers\BladeCompiler;
 
 class BladeIfAuthStatementsTest extends TestCase
 {
-    public function tearDown()
+    protected function tearDown(): void
     {
         m::close();
     }
@@ -39,6 +40,6 @@ breeze
 
     protected function getFiles()
     {
-        return m::mock('Illuminate\Filesystem\Filesystem');
+        return m::mock(Filesystem::class);
     }
 }

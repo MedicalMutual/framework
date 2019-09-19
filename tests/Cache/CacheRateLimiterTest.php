@@ -9,7 +9,7 @@ use Illuminate\Contracts\Cache\Repository as Cache;
 
 class CacheRateLimiterTest extends TestCase
 {
-    public function tearDown()
+    protected function tearDown(): void
     {
         m::close();
     }
@@ -22,7 +22,7 @@ class CacheRateLimiterTest extends TestCase
         $cache->shouldReceive('add')->never();
         $rateLimiter = new RateLimiter($cache);
 
-        $this->assertTrue($rateLimiter->tooManyAttempts('key', 1, 1));
+        $this->assertTrue($rateLimiter->tooManyAttempts('key', 1));
     }
 
     public function testHitProperlyIncrementsAttemptCount()

@@ -16,7 +16,7 @@ class DatabaseSchemaBuilderIntegrationTest extends TestCase
      *
      * @return void
      */
-    public function setUp()
+    protected function setUp(): void
     {
         $this->db = $db = new DB;
 
@@ -32,7 +32,7 @@ class DatabaseSchemaBuilderIntegrationTest extends TestCase
         Facade::setFacadeApplication($container);
     }
 
-    public function tearDown()
+    protected function tearDown(): void
     {
         Facade::clearResolvedInstances();
         Facade::setFacadeApplication(null);
@@ -58,5 +58,51 @@ class DatabaseSchemaBuilderIntegrationTest extends TestCase
 
         $this->assertFalse($this->db->connection()->getSchemaBuilder()->hasTable('table1'));
         $this->assertFalse($this->db->connection()->getSchemaBuilder()->hasTable('table2'));
+    }
+
+    public function testHasColumnWithTablePrefix()
+    {
+        $this->db->connection()->setTablePrefix('test_');
+
+        $this->db->connection()->getSchemaBuilder()->create('table1', function ($table) {
+            $table->integer('id');
+            $table->string('name');
+        });
+
+        $this->assertTrue($this->db->connection()->getSchemaBuilder()->hasColumn('table1', 'name'));
+    }
+
+    public function testHasColumnAndIndexWithPrefixIndexDisabled()
+    {
+        $this->db->addConnection([
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+            'prefix' => 'example_',
+            'prefix_indexes' => false,
+        ]);
+
+        $this->db->connection()->getSchemaBuilder()->create('table1', function ($table) {
+            $table->integer('id');
+            $table->string('name')->index();
+        });
+
+        $this->assertArrayHasKey('table1_name_index', $this->db->connection()->getDoctrineSchemaManager()->listTableIndexes('example_table1'));
+    }
+
+    public function testHasColumnAndIndexWithPrefixIndexEnabled()
+    {
+        $this->db->addConnection([
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+            'prefix' => 'example_',
+            'prefix_indexes' => true,
+        ]);
+
+        $this->db->connection()->getSchemaBuilder()->create('table1', function ($table) {
+            $table->integer('id');
+            $table->string('name')->index();
+        });
+
+        $this->assertArrayHasKey('example_table1_name_index', $this->db->connection()->getDoctrineSchemaManager()->listTableIndexes('example_table1'));
     }
 }
