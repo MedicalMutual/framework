@@ -10,6 +10,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Enumerable;
 use Illuminate\Support\HigherOrderCollectionProxy;
+use Illuminate\Support\HigherOrderWhenProxy;
 use JsonSerializable;
 use Symfony\Component\VarDumper\VarDumper;
 use Traversable;
@@ -30,10 +31,12 @@ use Traversable;
  * @property-read HigherOrderCollectionProxy $min
  * @property-read HigherOrderCollectionProxy $partition
  * @property-read HigherOrderCollectionProxy $reject
+ * @property-read HigherOrderCollectionProxy $some
  * @property-read HigherOrderCollectionProxy $sortBy
  * @property-read HigherOrderCollectionProxy $sortByDesc
  * @property-read HigherOrderCollectionProxy $sum
  * @property-read HigherOrderCollectionProxy $unique
+ * @property-read HigherOrderCollectionProxy $until
  */
 trait EnumeratesValues
 {
@@ -43,9 +46,29 @@ trait EnumeratesValues
      * @var array
      */
     protected static $proxies = [
-        'average', 'avg', 'contains', 'each', 'every', 'filter', 'first',
-        'flatMap', 'groupBy', 'keyBy', 'map', 'max', 'min', 'partition',
-        'reject', 'some', 'sortBy', 'sortByDesc', 'sum', 'unique',
+        'average',
+        'avg',
+        'contains',
+        'each',
+        'every',
+        'filter',
+        'first',
+        'flatMap',
+        'groupBy',
+        'keyBy',
+        'map',
+        'max',
+        'min',
+        'partition',
+        'reject',
+        'some',
+        'sortBy',
+        'sortByDesc',
+        'sum',
+        'takeUntil',
+        'takeWhile',
+        'unique',
+        'until',
     ];
 
     /**
@@ -403,12 +426,16 @@ trait EnumeratesValues
      * Apply the callback if the value is truthy.
      *
      * @param  bool|mixed  $value
-     * @param  callable  $callback
-     * @param  callable  $default
+     * @param  callable|null  $callback
+     * @param  callable|null  $default
      * @return static|mixed
      */
-    public function when($value, callable $callback, callable $default = null)
+    public function when($value, callable $callback = null, callable $default = null)
     {
+        if (! $callback) {
+            return new HigherOrderWhenProxy($this, $value);
+        }
+
         if ($value) {
             return $callback($this, $value);
         } elseif ($default) {
@@ -422,7 +449,7 @@ trait EnumeratesValues
      * Apply the callback if the collection is empty.
      *
      * @param  callable  $callback
-     * @param  callable  $default
+     * @param  callable|null  $default
      * @return static|mixed
      */
     public function whenEmpty(callable $callback, callable $default = null)
@@ -434,7 +461,7 @@ trait EnumeratesValues
      * Apply the callback if the collection is not empty.
      *
      * @param  callable  $callback
-     * @param  callable  $default
+     * @param  callable|null  $default
      * @return static|mixed
      */
     public function whenNotEmpty(callable $callback, callable $default = null)
@@ -447,7 +474,7 @@ trait EnumeratesValues
      *
      * @param  bool  $value
      * @param  callable  $callback
-     * @param  callable  $default
+     * @param  callable|null  $default
      * @return static|mixed
      */
     public function unless($value, callable $callback, callable $default = null)
@@ -459,7 +486,7 @@ trait EnumeratesValues
      * Apply the callback unless the collection is empty.
      *
      * @param  callable  $callback
-     * @param  callable  $default
+     * @param  callable|null  $default
      * @return static|mixed
      */
     public function unlessEmpty(callable $callback, callable $default = null)
@@ -471,7 +498,7 @@ trait EnumeratesValues
      * Apply the callback unless the collection is not empty.
      *
      * @param  callable  $callback
-     * @param  callable  $default
+     * @param  callable|null  $default
      * @return static|mixed
      */
     public function unlessNotEmpty(callable $callback, callable $default = null)
@@ -490,6 +517,28 @@ trait EnumeratesValues
     public function where($key, $operator = null, $value = null)
     {
         return $this->filter($this->operatorForWhere(...func_get_args()));
+    }
+
+    /**
+     * Filter items where the given key is not null.
+     *
+     * @param  string|null  $key
+     * @return static
+     */
+    public function whereNull($key = null)
+    {
+        return $this->whereStrict($key, null);
+    }
+
+    /**
+     * Filter items where the given key is null.
+     *
+     * @param  string|null  $key
+     * @return static
+     */
+    public function whereNotNull($key = null)
+    {
+        return $this->where($key, '!==', null);
     }
 
     /**
@@ -604,7 +653,7 @@ trait EnumeratesValues
     /**
      * Pass the collection to the given callback and return the result.
      *
-     * @param  callable $callback
+     * @param  callable  $callback
      * @return mixed
      */
     public function pipe(callable $callback)
@@ -673,6 +722,21 @@ trait EnumeratesValues
     public function uniqueStrict($key = null)
     {
         return $this->unique($key, true);
+    }
+
+    /**
+     * Take items in the collection until the given condition is met.
+     *
+     * This is an alias to the "takeUntil" method.
+     *
+     * @param  mixed  $key
+     * @return static
+     *
+     * @deprecated Use the "takeUntil" method directly.
+     */
+    public function until($value)
+    {
+        return $this->takeUntil($value);
     }
 
     /**
@@ -825,7 +889,7 @@ trait EnumeratesValues
      * Get an operator checker callback.
      *
      * @param  string  $key
-     * @param  string  $operator
+     * @param  string|null  $operator
      * @param  mixed  $value
      * @return \Closure
      */
@@ -895,6 +959,19 @@ trait EnumeratesValues
 
         return function ($item) use ($value) {
             return data_get($item, $value);
+        };
+    }
+
+    /**
+     * Make a function to check an item's equality.
+     *
+     * @param  \Closure|mixed  $value
+     * @return \Closure
+     */
+    protected function equality($value)
+    {
+        return function ($item) use ($value) {
+            return $item === $value;
         };
     }
 }

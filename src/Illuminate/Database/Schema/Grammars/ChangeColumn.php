@@ -19,7 +19,7 @@ class ChangeColumn
      * @param  \Illuminate\Database\Schema\Grammars\Grammar  $grammar
      * @param  \Illuminate\Database\Schema\Blueprint  $blueprint
      * @param  \Illuminate\Support\Fluent  $command
-     * @param  \Illuminate\Database\Connection $connection
+     * @param  \Illuminate\Database\Connection  $connection
      * @return array
      *
      * @throws \RuntimeException
@@ -33,12 +33,16 @@ class ChangeColumn
             ));
         }
 
+        $schema = $connection->getDoctrineSchemaManager();
+        $databasePlatform = $schema->getDatabasePlatform();
+        $databasePlatform->registerDoctrineTypeMapping('enum', 'string');
+
         $tableDiff = static::getChangedDiff(
-            $grammar, $blueprint, $schema = $connection->getDoctrineSchemaManager()
+            $grammar, $blueprint, $schema
         );
 
         if ($tableDiff !== false) {
-            return (array) $schema->getDatabasePlatform()->getAlterTableSQL($tableDiff);
+            return (array) $databasePlatform->getAlterTableSQL($tableDiff);
         }
 
         return [];
@@ -124,6 +128,7 @@ class ChangeColumn
         if (in_array($fluent['type'], ['json', 'binary'])) {
             $options['customSchemaOptions'] = [
                 'collation' => '',
+                'charset' => '',
             ];
         }
 
@@ -153,6 +158,9 @@ class ChangeColumn
                 break;
             case 'binary':
                 $type = 'blob';
+                break;
+            case 'uuid':
+                $type = 'guid';
                 break;
         }
 
