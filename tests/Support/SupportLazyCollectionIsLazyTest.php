@@ -29,6 +29,29 @@ class SupportLazyCollectionIsLazyTest extends TestCase
         });
     }
 
+    public function testChunkWhileIsLazy()
+    {
+        $collection = LazyCollection::make(['A', 'A', 'B', 'B', 'C', 'C', 'C']);
+
+        $this->assertDoesNotEnumerateCollection($collection, function ($collection) {
+            $collection->chunkWhile(function ($current, $key, $chunk) {
+                return $current === $chunk->last();
+            });
+        });
+
+        $this->assertEnumeratesCollection($collection, 3, function ($collection) {
+            $collection->chunkWhile(function ($current, $key, $chunk) {
+                return $current === $chunk->last();
+            })->first();
+        });
+
+        $this->assertEnumeratesCollectionOnce($collection, function ($collection) {
+            $collection->chunkWhile(function ($current, $key, $chunk) {
+                return $current === $chunk->last();
+            })->all();
+        });
+    }
+
     public function testCollapseIsLazy()
     {
         $collection = LazyCollection::make([
@@ -847,6 +870,40 @@ class SupportLazyCollectionIsLazyTest extends TestCase
 
         $this->assertEnumerates(12, function ($collection) {
             $collection->skip(10)->take(2)->all();
+        });
+    }
+
+    public function testSkipUntilIsLazy()
+    {
+        $this->assertDoesNotEnumerate(function ($collection) {
+            $collection->skipUntil(INF);
+        });
+
+        $this->assertEnumerates(10, function ($collection) {
+            $collection->skipUntil(10)->first();
+        });
+
+        $this->assertEnumerates(10, function ($collection) {
+            $collection->skipUntil(function ($item) {
+                return $item === 10;
+            })->first();
+        });
+    }
+
+    public function testSkipWhileIsLazy()
+    {
+        $this->assertDoesNotEnumerate(function ($collection) {
+            $collection->skipWhile(1);
+        });
+
+        $this->assertEnumerates(2, function ($collection) {
+            $collection->skipWhile(1)->first();
+        });
+
+        $this->assertEnumerates(10, function ($collection) {
+            $collection->skipWhile(function ($item) {
+                return $item < 10;
+            })->first();
         });
     }
 

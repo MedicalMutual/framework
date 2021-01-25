@@ -88,7 +88,11 @@ class DatabaseConnectorTest extends TestCase
     public function testPostgresSearchPathIsSet()
     {
         $dsn = 'pgsql:host=foo;dbname=bar';
+<<<<<<< HEAD
         $config = ['host' => 'foo', 'database' => 'bar', 'search_path' => 'public', 'charset' => 'utf8'];
+=======
+        $config = ['host' => 'foo', 'database' => 'bar', 'schema' => 'public', 'charset' => 'utf8'];
+>>>>>>> v8.24.0
         $connector = $this->getMockBuilder(PostgresConnector::class)->onlyMethods(['createConnection', 'getOptions'])->getMock();
         $connection = m::mock(stdClass::class);
         $connector->expects($this->once())->method('getOptions')->with($this->equalTo($config))->willReturn(['options']);
@@ -104,7 +108,11 @@ class DatabaseConnectorTest extends TestCase
     public function testPostgresSearchPathArraySupported()
     {
         $dsn = 'pgsql:host=foo;dbname=bar';
+<<<<<<< HEAD
         $config = ['host' => 'foo', 'database' => 'bar', 'search_path' => ['public', '"user"'], 'charset' => 'utf8'];
+=======
+        $config = ['host' => 'foo', 'database' => 'bar', 'schema' => ['public', 'user'], 'charset' => 'utf8'];
+>>>>>>> v8.24.0
         $connector = $this->getMockBuilder(PostgresConnector::class)->onlyMethods(['createConnection', 'getOptions'])->getMock();
         $connection = m::mock(stdClass::class);
         $connector->expects($this->once())->method('getOptions')->with($this->equalTo($config))->willReturn(['options']);

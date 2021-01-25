@@ -314,6 +314,7 @@ class DatabaseSQLiteSchemaGrammarTest extends TestCase
         $blueprint = new Blueprint('users');
         $foreignId = $blueprint->foreignId('foo');
         $blueprint->foreignId('company_id')->constrained();
+        $blueprint->foreignId('laravel_idea_id')->constrained();
         $blueprint->foreignId('team_id')->references('id')->on('teams');
         $blueprint->foreignId('team_column_id')->constrained('teams');
 
@@ -323,6 +324,7 @@ class DatabaseSQLiteSchemaGrammarTest extends TestCase
         $this->assertSame([
             'alter table "users" add column "foo" integer not null',
             'alter table "users" add column "company_id" integer not null',
+            'alter table "users" add column "laravel_idea_id" integer not null',
             'alter table "users" add column "team_id" integer not null',
             'alter table "users" add column "team_column_id" integer not null',
         ], $statements);
@@ -359,7 +361,7 @@ class DatabaseSQLiteSchemaGrammarTest extends TestCase
         $statements = $blueprint->toSql($this->getConnection(), $this->getGrammar());
 
         $this->assertCount(1, $statements);
-        $this->assertSame('alter table "users" add column "foo" varchar null default \'bar\'', $statements[0]);
+        $this->assertSame('alter table "users" add column "foo" varchar default \'bar\'', $statements[0]);
     }
 
     public function testAddingText()
@@ -661,8 +663,8 @@ class DatabaseSQLiteSchemaGrammarTest extends TestCase
         $statements = $blueprint->toSql($this->getConnection(), $this->getGrammar());
         $this->assertCount(2, $statements);
         $this->assertEquals([
-            'alter table "users" add column "created_at" datetime null',
-            'alter table "users" add column "updated_at" datetime null',
+            'alter table "users" add column "created_at" datetime',
+            'alter table "users" add column "updated_at" datetime',
         ], $statements);
     }
 
@@ -673,8 +675,8 @@ class DatabaseSQLiteSchemaGrammarTest extends TestCase
         $statements = $blueprint->toSql($this->getConnection(), $this->getGrammar());
         $this->assertCount(2, $statements);
         $this->assertEquals([
-            'alter table "users" add column "created_at" datetime null',
-            'alter table "users" add column "updated_at" datetime null',
+            'alter table "users" add column "created_at" datetime',
+            'alter table "users" add column "updated_at" datetime',
         ], $statements);
     }
 
@@ -685,7 +687,7 @@ class DatabaseSQLiteSchemaGrammarTest extends TestCase
         $statements = $blueprint->toSql($this->getConnection(), $this->getGrammar());
 
         $this->assertCount(1, $statements);
-        $this->assertSame('alter table "users" add column "remember_token" varchar null', $statements[0]);
+        $this->assertSame('alter table "users" add column "remember_token" varchar', $statements[0]);
     }
 
     public function testAddingBinary()
@@ -706,6 +708,27 @@ class DatabaseSQLiteSchemaGrammarTest extends TestCase
 
         $this->assertCount(1, $statements);
         $this->assertSame('alter table "users" add column "foo" varchar not null', $statements[0]);
+    }
+
+    public function testAddingForeignUuid()
+    {
+        $blueprint = new Blueprint('users');
+        $foreignUuid = $blueprint->foreignUuid('foo');
+        $blueprint->foreignUuid('company_id')->constrained();
+        $blueprint->foreignUuid('laravel_idea_id')->constrained();
+        $blueprint->foreignUuid('team_id')->references('id')->on('teams');
+        $blueprint->foreignUuid('team_column_id')->constrained('teams');
+
+        $statements = $blueprint->toSql($this->getConnection(), $this->getGrammar());
+
+        $this->assertInstanceOf(ForeignIdColumnDefinition::class, $foreignUuid);
+        $this->assertSame([
+            'alter table "users" add column "foo" varchar not null',
+            'alter table "users" add column "company_id" varchar not null',
+            'alter table "users" add column "laravel_idea_id" varchar not null',
+            'alter table "users" add column "team_id" varchar not null',
+            'alter table "users" add column "team_column_id" varchar not null',
+        ], $statements);
     }
 
     public function testAddingIpAddress()
@@ -806,6 +829,32 @@ class DatabaseSQLiteSchemaGrammarTest extends TestCase
 
         $this->assertCount(1, $statements);
         $this->assertSame('alter table "geo" add column "coordinates" multipolygon not null', $statements[0]);
+    }
+
+    public function testAddingGeneratedColumn()
+    {
+        $blueprint = new Blueprint('products');
+        $blueprint->create();
+        $blueprint->integer('price');
+        $blueprint->integer('discounted_virtual')->virtualAs('"price" - 5');
+        $blueprint->integer('discounted_stored')->storedAs('"price" - 5');
+        $statements = $blueprint->toSql($this->getConnection(), $this->getGrammar());
+
+        $this->assertCount(1, $statements);
+        $this->assertSame('create table "products" ("price" integer not null, "discounted_virtual" integer as ("price" - 5), "discounted_stored" integer as ("price" - 5) stored)', $statements[0]);
+
+        $blueprint = new Blueprint('products');
+        $blueprint->integer('price');
+        $blueprint->integer('discounted_virtual')->virtualAs('"price" - 5')->nullable(false);
+        $blueprint->integer('discounted_stored')->storedAs('"price" - 5')->nullable(false);
+        $statements = $blueprint->toSql($this->getConnection(), $this->getGrammar());
+
+        $this->assertCount(2, $statements);
+        $expected = [
+            'alter table "products" add column "price" integer not null',
+            'alter table "products" add column "discounted_virtual" integer as ("price" - 5) not null',
+        ];
+        $this->assertSame($expected, $statements);
     }
 
     public function testGrammarsAreMacroable()

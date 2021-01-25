@@ -236,8 +236,10 @@ class FilesystemAdapterTest extends TestCase
         $spy = m::spy($this->filesystem);
 
         $filesystemAdapter = new FilesystemAdapter($spy);
-        $stream = new Stream(fopen($this->tempDir.'/foo.txt', 'r'));
-        $filesystemAdapter->put('bar.txt', $stream);
+        $stream = fopen($this->tempDir.'/foo.txt', 'r');
+        $guzzleStream = new Stream($stream);
+        $filesystemAdapter->put('bar.txt', $guzzleStream);
+        fclose($stream);
 
         $spy->shouldHaveReceived('putStream');
         $this->assertSame('some-data', $filesystemAdapter->get('bar.txt'));
@@ -260,6 +262,11 @@ class FilesystemAdapterTest extends TestCase
         $filesystemAdapter->assertExists($storagePath);
 
         $this->assertSame('uploaded file content', $filesystemAdapter->read($storagePath));
+
+        $filesystemAdapter->assertExists(
+            $storagePath,
+            'uploaded file content'
+        );
     }
 
     public function testPutFileAsWithAbsoluteFilePath()
@@ -288,6 +295,11 @@ class FilesystemAdapterTest extends TestCase
         $this->assertFileExists($filePath);
 
         $filesystemAdapter->assertExists($storagePath);
+
+        $filesystemAdapter->assertExists(
+            $storagePath,
+            'uploaded file content'
+        );
     }
 
     public function testPutFileWithAbsoluteFilePath()
@@ -301,5 +313,10 @@ class FilesystemAdapterTest extends TestCase
         $this->assertSame(44, strlen($storagePath)); // random 40 characters + ".txt"
 
         $filesystemAdapter->assertExists($storagePath);
+
+        $filesystemAdapter->assertExists(
+            $storagePath,
+            'uploaded file content'
+        );
     }
 }
